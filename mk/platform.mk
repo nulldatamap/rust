@@ -81,57 +81,27 @@ CFG_DEPEND_FLAGS = -MMD -MP -MT $(1) -MF $(1:%.o=%.d)
 
 AR := ar
 
-CFG_INFO := $(info cfg: using $(CFG_C_COMPILER))
-ifeq ($(CFG_C_COMPILER),clang)
+define SET_FROM_CFG
+  ifdef CFG_$(1)
+    ifeq ($(origin $(1)),undefined)
+      $$(info cfg: using $(1)=$(CFG_$(1)) (CFG_$(1)))
+      $(1)=$(CFG_$(1))
+    endif
+    ifeq ($(origin $(1)),default)
+      $$(info cfg: using $(1)=$(CFG_$(1)) (CFG_$(1)))
+      $(1)=$(CFG_$(1))
+    endif
+  endif
+endef
+
+$(foreach cvar,CC CXX CPP CFLAGS CXXFLAGS CPPFLAGS,\
+  $(eval $(call SET_FROM_CFG,$(cvar))))
+
+ifeq ($(CFG_ENABLE_CLANG),1)
   # The -Qunused-arguments sidesteps spurious warnings from clang
-  ifeq ($(origin CC),default)
-    CC=clang -Qunused-arguments
-  endif
-  ifeq ($(origin CXX),default)
-    CXX=clang++ -Qunused-arguments
-  endif
-  ifeq ($(origin CPP),default)
-    CPP=clang -Qunused-arguments
-  endif
-else
-ifeq ($(CFG_C_COMPILER),gcc)
-  ifeq ($(origin CC),default)
-    CC=gcc
-  endif
-  ifeq ($(origin CXX),default)
-    CXX=g++
-  endif
-  ifeq ($(origin CPP),default)
-    CPP=gcc
-  endif
-else
-ifeq ($(CFG_C_COMPILER),ccache clang)
-  # The -Qunused-arguments sidesteps spurious warnings from clang
-  ifeq ($(origin CC),default)
-    CC=ccache clang -Qunused-arguments
-  endif
-  ifeq ($(origin CXX),default)
-    CXX=ccache clang++ -Qunused-arguments
-  endif
-  ifeq ($(origin CPP),default)
-    CPP=ccache clang -Qunused-arguments
-  endif
-else
-ifeq ($(CFG_C_COMPILER),ccache gcc)
-  ifeq ($(origin CC),default)
-    CC=ccache gcc
-  endif
-  ifeq ($(origin CXX),default)
-    CXX=ccache g++
-  endif
-  ifeq ($(origin CPP),default)
-    CPP=ccache gcc
-  endif
-else
-  CFG_ERR := $(error please try on a system with gcc or clang)
-endif
-endif
-endif
+  CFLAGS += -Qunused-arguments
+  CXXFLAGS += -Qunused-arguments
+  CPPFLAGS += -Qunused-arguments
 endif
 
 CFG_RLIB_GLOB=lib$(1)-*.rlib
