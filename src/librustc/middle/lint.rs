@@ -506,15 +506,21 @@ impl<'a> Context<'a> {
         let mut note = None;
         let msg = match src {
             Default => {
-                format!("{}, \\#[{}({})] on by default", msg,
-                    level_to_str(level), self.lint_to_str(lint))
+                format_strbuf!("{}, \\#[{}({})] on by default",
+                               msg,
+                               level_to_str(level),
+                               self.lint_to_str(lint))
             },
             CommandLine => {
-                format!("{} [-{} {}]", msg,
-                    match level {
-                        warn => 'W', deny => 'D', forbid => 'F',
-                        allow => fail!()
-                    }, self.lint_to_str(lint).replace("_", "-"))
+                format_strbuf!("{} [-{} {}]",
+                               msg,
+                               match level {
+                                warn => 'W',
+                                deny => 'D',
+                                forbid => 'F',
+                                allow => fail!()
+                               },
+                               self.lint_to_str(lint).replace("_", "-"))
             },
             Node(src) => {
                 note = Some(src);
@@ -522,8 +528,8 @@ impl<'a> Context<'a> {
             }
         };
         match level {
-            warn =>          { self.tcx.sess.span_warn(span, msg); }
-            deny | forbid => { self.tcx.sess.span_err(span, msg);  }
+            warn => self.tcx.sess.span_warn(span, msg.as_slice()),
+            deny | forbid => self.tcx.sess.span_err(span, msg.as_slice()),
             allow => fail!(),
         }
 
@@ -552,7 +558,7 @@ impl<'a> Context<'a> {
                         UnrecognizedLint,
                         meta.span,
                         format!("unknown `{}` attribute: `{}`",
-                        level_to_str(level), lintname));
+                                level_to_str(level), lintname).as_slice());
                 }
                 Some(lint) => {
                     let lint = lint.lint;
@@ -560,8 +566,9 @@ impl<'a> Context<'a> {
                     if now == forbid && level != forbid {
                         self.tcx.sess.span_err(meta.span,
                         format!("{}({}) overruled by outer forbid({})",
-                        level_to_str(level),
-                        lintname, lintname));
+                                level_to_str(level),
+                                lintname,
+                                lintname).as_slice());
                     } else if now != level {
                         let src = self.get_source(lint);
                         self.lint_stack.push((lint, now, src));
@@ -965,13 +972,13 @@ fn check_heap_type(cx: &Context, span: Span, ty: ty::t) {
         if n_uniq > 0 && lint != ManagedHeapMemory {
             let s = ty_to_str(cx.tcx, ty);
             let m = format!("type uses owned (Box type) pointers: {}", s);
-            cx.span_lint(lint, span, m);
+            cx.span_lint(lint, span, m.as_slice());
         }
 
         if n_box > 0 && lint != OwnedHeapMemory {
             let s = ty_to_str(cx.tcx, ty);
             let m = format!("type uses managed (@ type) pointers: {}", s);
-            cx.span_lint(lint, span, m);
+            cx.span_lint(lint, span, m.as_slice());
         }
     }
 }
@@ -1122,7 +1129,8 @@ fn check_attrs_usage(cx: &Context, attrs: &[ast::Attribute]) {
         for &(obs_attr, obs_alter) in obsolete_attrs.iter() {
             if name.equiv(&obs_attr) {
                 cx.span_lint(AttributeUsage, attr.span,
-                             format!("obsolete attribute: {:s}", obs_alter));
+                             format!("obsolete attribute: {:s}",
+                                     obs_alter).as_slice());
                 return;
             }
         }
@@ -1233,7 +1241,7 @@ fn check_item_non_camel_case_types(cx: &Context, it: &ast::Item) {
             cx.span_lint(
                 NonCamelCaseTypes, span,
                 format!("{} `{}` should have a camel case identifier",
-                    sort, token::get_ident(ident)));
+                    sort, token::get_ident(ident)).as_slice());
         }
     }
 
@@ -1331,7 +1339,8 @@ fn check_unnecessary_parens_core(cx: &Context, value: &ast::Expr, msg: &str) {
     match value.node {
         ast::ExprParen(_) => {
             cx.span_lint(UnnecessaryParens, value.span,
-                         format!("unnecessary parentheses around {}", msg))
+                         format!("unnecessary parentheses around {}",
+                                 msg).as_slice())
         }
         _ => {}
     }
@@ -1506,8 +1515,10 @@ fn check_missing_doc_attrs(cx: &Context,
         }
     });
     if !has_doc {
-        cx.span_lint(MissingDoc, sp,
-                     format!("missing documentation for {}", desc));
+        cx.span_lint(MissingDoc,
+                     sp,
+                     format!("missing documentation for {}",
+                             desc).as_slice());
     }
 }
 
@@ -1675,7 +1686,7 @@ fn check_stability(cx: &Context, e: &ast::Expr) {
         _ => format!("use of {} item", label)
     };
 
-    cx.span_lint(lint, e.span, msg);
+    cx.span_lint(lint, e.span, msg.as_slice());
 }
 
 impl<'a> Visitor<()> for Context<'a> {
@@ -1906,8 +1917,11 @@ pub fn check_crate(tcx: &ty::ctxt,
     // in the iteration code.
     for (id, v) in tcx.sess.lints.borrow().iter() {
         for &(lint, span, ref msg) in v.iter() {
-            tcx.sess.span_bug(span, format!("unprocessed lint {:?} at {}: {}",
-                                            lint, tcx.map.node_to_str(*id), *msg))
+            tcx.sess.span_bug(span,
+                              format!("unprocessed lint {:?} at {}: {}",
+                                      lint,
+                                      tcx.map.node_to_str(*id),
+                                      *msg).as_slice())
         }
     }
 
