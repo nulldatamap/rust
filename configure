@@ -645,7 +645,7 @@ then
             if !((chk_cc gcc clang  && chk_cc g++ clang) ||
                 (chk_cc gcc gcc  &&( chk_cc g++ g++ || chk g++ gcc))) then
                 err "the gcc and g++ in your path point to different compilers.
-    Check which versions are in your path with  cc --version and g++ --version.
+    Check which versions are in your path with gcc --version and g++ --version.
     To resolve this problem, either fix your PATH  or run configure with --enable-clang"
             fi
 
@@ -670,10 +670,30 @@ then
     esac
 fi
 
+# Even when the user overrides the choice of CC, still try to detect
+# clang to disable some clang-specific warnings.  We here draw a
+# distinction between:
+#
+#  CFG_ENABLE_CLANG : passed --enable-clang, or host "requires" clang,
+#  CFG_USING_CLANG : compiler (clang / gcc / $CC) looks like clang.
+#
+# This distinction is important because there are some safeguards we
+# would prefer to skip when merely CFG_USING_CLANG is set; but when
+# CFG_ENABLE_CLANG is set, that indicates that we are opting into
+# running such safeguards.
+
 if [ ! -z "$CC" ]
 then
     msg "skipping compiler inference steps; using provided CC=$CC"
     CFG_CC="$CC"
+
+    CFG_OSX_CC_VERSION=$("$CFG_CC" --version 2>&1 | grep "clang")
+    if [ $? -eq 0 ]
+    then
+        step_msg "note, user-provided CC looks like clang; CC=$CC."
+        CFG_USING_CLANG=1
+        putvar CFG_USING_CLANG
+    fi
 else
     if [ ! -z "$CFG_ENABLE_CLANG" ]
     then
@@ -682,21 +702,11 @@ else
             err "clang requested but not found"
         fi
         CFG_CC="$CFG_CLANG"
+        CFG_USING_CLANG=1
+        putvar CFG_USING_CLANG
     else
         CFG_CC="gcc"
     fi
-
-    if [ ! -z "$CFG_ENABLE_CCACHE" ]
-    then
-        if [ -z "$CFG_CCACHE" ]
-        then
-            err "ccache requested but not found"
-        fi
-
-        CFG_CC="ccache $CFG_CC"
-    fi
-
-    msg "inferred compiler: $CFG_CC"
 fi
 
 if [ ! -z "$CFG_ENABLE_CLANG" ]
@@ -725,6 +735,28 @@ then
         msg "skipping CFG_ENABLE_CLANG version check; provided CC=$CC"
     fi
 fi
+
+if [ ! -z "$CFG_ENABLE_CCACHE" ]
+then
+    if [ -z "$CC" ]
+    then
+        if [ -z "$CFG_CCACHE" ]
+        then
+            err "ccache requested but not found"
+        fi
+
+        CFG_CC="ccache $CFG_CC"
+    fi
+fi
+
+if [ -z "$CC" -a -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
+then
+    err "either clang or gcc is required"
+fi
+
+# All safeguards based on $CFG_ENABLE_CLANG should occur before this
+# point in the script; after this point, script logic should inspect
+# $CFG_USING_CLANG rather than $CFG_ENABLE_CLANG.
 
 # Set CFG_{CC,CXX,CPP,CFLAGS,CXXFLAGS}
 envopt CC
@@ -793,11 +825,6 @@ do
             ;;
     esac
 done
-
-if [ -z "$CFG_ENABLE_CLANG" -a -z "$CFG_GCC" ]
-then
-    err "either clang or gcc is required"
-fi
 
 if [ ! -z "$CFG_PERF" ]
 then
@@ -1145,7 +1172,7 @@ putvar CFG_DISABLE_INJECT_STD_VERSION
 
 # Avoid spurious warnings from clang by feeding it original source on
 # ccache-miss rather than preprocessed input.
-if [ ! -z "$CFG_ENABLE_CCACHE" ] && [ ! -z "$CFG_ENABLE_CLANG" ]
+if [ ! -z "$CFG_ENABLE_CCACHE" ] && [ ! -z "$CFG_USING_CLANG" ]
 then
     CFG_CCACHE_CPP2=1
     putvar CFG_CCACHE_CPP2

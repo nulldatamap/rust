@@ -97,7 +97,7 @@ endef
 $(foreach cvar,CC CXX CPP CFLAGS CXXFLAGS CPPFLAGS,\
   $(eval $(call SET_FROM_CFG,$(cvar))))
 
-ifeq ($(CFG_ENABLE_CLANG),1)
+ifeq ($(CFG_USING_CLANG),1)
   # The -Qunused-arguments sidesteps spurious warnings from clang
   CFLAGS += -Qunused-arguments
   CXXFLAGS += -Qunused-arguments

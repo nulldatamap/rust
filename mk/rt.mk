@@ -82,7 +82,7 @@ $$(RT_OUTPUT_DIR_$(1))/%.o: $(S)src/rt/%.c $$(MKFILE_DEPS)
 	$$(Q)$$(call CFG_COMPILE_C_$(1), $$@, \
 		-I $$(S)src/rt/hoedown/src \
 		-I $$(S)src/libuv/include -I $$(S)src/rt \
-                 $$(RUNTIME_CFLAGS_$(1))) $$<
+                 $(CFLAGS) $$(RUNTIME_CFLAGS_$(1))) $$<
 
 $$(RT_OUTPUT_DIR_$(1))/%.o: $(S)src/rt/%.S $$(MKFILE_DEPS) \
 	    $$(LLVM_CONFIG_$$(CFG_BUILD))
@@ -291,7 +291,7 @@ $$(COMPRT_LIB_$(1)): $$(COMPRT_DEPS) $$(MKFILE_DEPS)
 		CC="$$(CC_$(1))" \
 		AR="$$(AR_$(1))" \
 		RANLIB="$$(AR_$(1)) s" \
-		CFLAGS="$$(CFG_GCCISH_CFLAGS_$(1))" \
+		CFLAGS="$(CFLAGS) $$(CFG_GCCISH_CFLAGS_$(1))" \
 		TargetTriple=$(1) \
 		triple-builtins
 	$$(Q)cp $$(COMPRT_BUILD_DIR_$(1))/triple/builtins/libcompiler_rt.a $$(COMPRT_LIB_$(1))
