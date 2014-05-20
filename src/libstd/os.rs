@@ -104,6 +104,7 @@ pub mod win32 {
     use option;
     use os::TMPBUF_SZ;
     use slice::{MutableVector, ImmutableVector};
+    use strbuf::StrBuf;
     use str::{StrSlice, StrAllocating};
     use str;
     use vec::Vec;

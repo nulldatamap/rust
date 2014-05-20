@@ -274,6 +274,7 @@ pub mod dl {
     use os;
     use ptr;
     use result::{Ok, Err, Result};
+    use strbuf::StrBuf;
     use str;
     use c_str::ToCStr;
 
